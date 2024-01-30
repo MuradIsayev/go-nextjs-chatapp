@@ -11,8 +11,8 @@ type Database struct {
 }
 
 // returns a pointer to a new database
-func NewDatabase() (*Database, error) {
-	db, err := sql.Open("postgres", "postgresql://root:password@localhost:5432/go-chat?sslmode=disable")
+func NewDatabase(dbURL string) (*Database, error) {
+	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		return nil, err
 	}
