@@ -2,10 +2,12 @@ package user
 
 import (
 	"context"
+	"os"
 	"strconv"
 	"time"
 
 	"github.com/MuradIsayev/go-nextjs-chatapp/util"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 type service struct {
@@ -47,4 +49,43 @@ func (s *service) CreateUser(c context.Context, req *CreateUserReq) (*CreateUser
 	}
 
 	return res, nil
+}
+
+type MyJWTClaims struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	jwt.RegisteredClaims
+}
+
+func (s *service) Login(c context.Context, req *LoginUserReq) (*LoginUserRes, error) {
+	secret := os.Getenv("JWT_SECRET")
+
+	ctx, cancel := context.WithTimeout(c, s.timeout)
+	defer cancel()
+
+	u, err := s.Repository.GetUserByEmail(ctx, req.Email)
+	if err != nil {
+		return &LoginUserRes{}, err
+	}
+
+	err = util.CheckPassword(req.Password, u.Password)
+	if err != nil {
+		return &LoginUserRes{}, err
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, MyJWTClaims{
+		ID:       strconv.Itoa(int(u.ID)),
+		Username: u.Username,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    strconv.Itoa(int(u.ID)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+		},
+	})
+
+	signString, err := token.SignedString([]byte(secret))
+	if err != nil {
+		return &LoginUserRes{}, err
+	}
+
+	return &LoginUserRes{accessToken: signString, ID: strconv.Itoa(int(u.ID)), Username: u.Username}, nil
 }
