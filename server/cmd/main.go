@@ -6,6 +6,7 @@ import (
 
 	"github.com/MuradIsayev/go-nextjs-chatapp/db"
 	"github.com/MuradIsayev/go-nextjs-chatapp/internal/user"
+	"github.com/MuradIsayev/go-nextjs-chatapp/internal/ws"
 	"github.com/MuradIsayev/go-nextjs-chatapp/router"
 	"github.com/joho/godotenv"
 )
@@ -27,7 +28,10 @@ func main() {
 	userService := user.NewService(userRepository)
 	userHandler := user.NewHandler(userService)
 
-	router.InitRouter(userHandler)
+	hub := ws.NewHub()
+	wsHandler := ws.NewHandler(hub)
+
+	router.InitRouter(userHandler, wsHandler)
 	router.Start("localhost:8080")
 
 }
